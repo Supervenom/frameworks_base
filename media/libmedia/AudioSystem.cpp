@@ -875,3 +875,4 @@ extern "C" bool _ZN7android11AudioSystem17isSeparatedStreamE19audio_stream_type_
 #endif // USE_SAMSUNG_SEPARATEDSTREAM
 
 }; // namespace android
+
