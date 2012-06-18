@@ -1923,6 +1923,13 @@ public final class Settings {
         public static final String SHOW_TOUCHES = "show_touches";
 
         /**
+         * The keylayout that will be used by EventHub instead of the default
+         * one.
+	 * @hide
+         */
+        public static final String KEYLAYOUT_OVERRIDES = "keylayout";
+
+        /**
          * Log raw orientation data from {@link WindowOrientationListener} for use with the
          * orientationplot.py tool.
          * 0 = no
@@ -1937,6 +1944,12 @@ public final class Settings {
          * @hide
          */
         public static final String POWER_SOUNDS_ENABLED = "power_sounds_enabled";
+
+        /**
+         * Whether to route USB Audio when docked.
+         * @hide
+         */
+        public static final String DOCK_USB_AUDIO_ENABLED = "dock_usb_audio_enabled";
 
         /**
          * Whether to play a sound for dock events.
@@ -2106,6 +2119,7 @@ public final class Settings {
             SIP_CALL_OPTIONS,
             SIP_RECEIVE_CALLS,
             POINTER_SPEED,
+            KEYLAYOUT_OVERRIDES,
         };
 
         // Settings moved to Settings.Secure
@@ -2707,7 +2721,13 @@ public final class Settings {
          * @hide
          */
         public static final String VOLUME_MUSIC_CONTROLS = "volume_music_controls";
-        
+
+        /**
+         * Whether to show the stock music layout on the lockscreen
+         * @hide
+         */
+        public static final String LOCKSCREEN_STOCK_MUSIC_LAYOUT = "lockscreen_stock_music_layout";
+
         /**
          * Setting to allow % on lockscreen always showing.
          * @hide
@@ -3031,6 +3051,13 @@ public final class Settings {
          * Widgets to show, should be separated by |
          */
         public static final String NAVIGATION_BAR_WIDGETS = "navigation_bar_widgets";
+
+        /**
+         * How long to wait between playing notification sounds from a package
+         * Should be in milliseconds. 0 to disable
+         * @hide
+         */
+        public static final String MUTE_ANNOYING_NOTIFICATIONS_THRESHOLD = "mute_annoying_notifications_threshold";
     }
 
     /**
@@ -4998,7 +5025,7 @@ public final class Settings {
             MOUNT_UMS_NOTIFY_ENABLED,
             UI_NIGHT_MODE,
             LOCK_SCREEN_OWNER_INFO,
-            LOCK_SCREEN_OWNER_INFO_ENABLED
+            LOCK_SCREEN_OWNER_INFO_ENABLED,
         };
 
         /**
