@@ -24,11 +24,9 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.ContentObserver;
 import android.os.BatteryManager;
 import android.os.Binder;
 import android.os.FileUtils;
-import android.os.Handler;
 import android.os.IBinder;
 import android.os.DropBoxManager;
 import android.os.RemoteException;
@@ -105,10 +103,6 @@ class BatteryService extends Binder {
     private boolean mBatteryLevelCritical;
     private int mInvalidCharger;
 
-    private int mDockBatteryStatus;
-    private int mDockBatteryLevel;
-    private String mDockBatteryPresent;
-
     private int mLastBatteryStatus;
     private int mLastBatteryHealth;
     private boolean mLastBatteryPresent;
@@ -121,8 +115,6 @@ class BatteryService extends Binder {
     private int mLowBatteryWarningLevel;
     private int mLowBatteryCloseWarningLevel;
 
-    private boolean mHasDockBattery;
-
     private int mPlugType;
     private int mLastPlugType = -1; // Extra state so we can detect first run
 
@@ -130,7 +122,6 @@ class BatteryService extends Binder {
     private int mDischargeStartLevel;
 
     private Led mLed;
-    private boolean mLedPulseEnabled;
 
     private boolean mSentLowBatteryBroadcast = false;
 
@@ -146,18 +137,12 @@ class BatteryService extends Binder {
         mLowBatteryCloseWarningLevel = mContext.getResources().getInteger(
                 com.android.internal.R.integer.config_lowBatteryCloseWarningLevel);
 
-        mHasDockBattery = mContext.getResources().getBoolean(
-                com.android.internal.R.bool.config_hasDockBattery);
-
         mPowerSupplyObserver.startObserving("SUBSYSTEM=power_supply");
 
         // watch for invalid charger messages if the invalid_charger switch exists
         if (new File("/sys/devices/virtual/switch/invalid_charger/state").exists()) {
             mInvalidChargerObserver.startObserving("DEVPATH=/devices/virtual/switch/invalid_charger");
         }
-
-        SettingsObserver observer = new SettingsObserver(new Handler());
-        observer.observe();
 
         // set initial status
         update();
@@ -339,6 +324,9 @@ class BatteryService extends Binder {
                     && mBatteryLevel <= mLowBatteryWarningLevel
                     && (oldPlugged || mLastBatteryLevel > mLowBatteryWarningLevel);
 
+            if (mBatteryStatus == BatteryManager.BATTERY_STATUS_UNKNOWN)
+                mBatteryLevel = BATTERY_SCALE;
+
             sendIntent();
 
             // Separate broadcast is sent for power connected / not connected
@@ -404,12 +392,6 @@ class BatteryService extends Binder {
         intent.putExtra(BatteryManager.EXTRA_TEMPERATURE, mBatteryTemperature);
         intent.putExtra(BatteryManager.EXTRA_TECHNOLOGY, mBatteryTechnology);
         intent.putExtra(BatteryManager.EXTRA_INVALID_CHARGER, mInvalidCharger);
-
-        if (mHasDockBattery){
-            intent.putExtra(BatteryManager.EXTRA_DOCK_STATUS, mDockBatteryStatus);
-            intent.putExtra(BatteryManager.EXTRA_DOCK_LEVEL, mDockBatteryLevel);
-            intent.putExtra(BatteryManager.EXTRA_DOCK_AC_ONLINE, false);
-        }
 
         if (false) {
             Slog.d(TAG, "level:" + mBatteryLevel +
@@ -563,10 +545,6 @@ class BatteryService extends Binder {
         }
     }
 
-    private synchronized void updateLedPulse() {
-        mLed.updateLightsLocked();
-    }
-
     class Led {
         private LightsService mLightsService;
         private LightsService.Light mBatteryLight;
@@ -607,13 +585,10 @@ class BatteryService extends Binder {
                 if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
                     // Solid red when battery is charging
                     mBatteryLight.setColor(mBatteryLowARGB);
-                } else if (mLedPulseEnabled) {
+                } else {
                     // Flash red when battery is low and not charging
                     mBatteryLight.setFlashing(mBatteryLowARGB, LightsService.LIGHT_FLASH_TIMED,
                             mBatteryLedOn, mBatteryLedOff);
-                } else {
-                    // "Pulse low battery light" is disabled, no lights.
-                    mBatteryLight.turnOff();
                 }
             } else if (status == BatteryManager.BATTERY_STATUS_CHARGING
                     || status == BatteryManager.BATTERY_STATUS_FULL) {
@@ -627,33 +602,6 @@ class BatteryService extends Binder {
             } else {
                 // No lights if not charging and not low
                 mBatteryLight.turnOff();
-            }
-        }
-    }
-
-    class SettingsObserver extends ContentObserver {
-        SettingsObserver(Handler handler) {
-            super(handler);
-        }
-
-        void observe() {
-            ContentResolver resolver = mContext.getContentResolver();
-            resolver.registerContentObserver(Settings.System.getUriFor(
-                    Settings.System.BATTERY_LIGHT_PULSE), false, this);
-            update();
-        }
-
-        @Override public void onChange(boolean selfChange) {
-            update();
-        }
-
-        public void update() {
-            ContentResolver resolver = mContext.getContentResolver();
-            boolean pulseEnabled = Settings.System.getInt(resolver,
-                        Settings.System.BATTERY_LIGHT_PULSE, 1) != 0;
-            if (mLedPulseEnabled != pulseEnabled) {
-                mLedPulseEnabled = pulseEnabled;
-                updateLedPulse();
             }
         }
     }
